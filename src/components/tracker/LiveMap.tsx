@@ -1,6 +1,5 @@
 "use client";
 
-import type { LatLngExpression } from "leaflet";
 import { useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
@@ -62,19 +61,12 @@ function planeDivIcon(heading: number, selected: boolean) {
   });
 }
 
-function AutoFocus({
-  flight,
-  enabled,
-}: {
-  flight: Flight | null;
-  enabled: boolean;
-}) {
+function AutoFocus({ flight, enabled }: { flight: Flight | null; enabled: boolean }) {
   const map = useMap();
 
   useEffect(() => {
     if (!enabled) return;
     if (!flight) return;
-
     map.setView([flight.lat, flight.lon], 6, { animate: true });
   }, [enabled, flight, map]);
 
@@ -102,10 +94,7 @@ export default function LiveMap({
   useEffect(() => setMounted(true), []);
 
   const selected = useMemo(() => {
-    return (
-      flights.find((f) => f.id === selectedId) ??
-      (flights.length === 1 ? flights[0] : null)
-    );
+    return flights.find((f) => f.id === selectedId) ?? (flights.length === 1 ? flights[0] : null);
   }, [flights, selectedId]);
 
   const trackPositions = useMemo(() => {
@@ -142,8 +131,6 @@ export default function LiveMap({
     return pts.length >= 2 ? pts : [];
   }, [selected]);
 
-  const mapCenter: LatLngExpression = [20, 0];
-
   if (!mounted) {
     return (
       <div className="w-full h-[360px] rounded-xl border border-white/10 bg-black/30 flex items-center justify-center text-white/50">
@@ -152,9 +139,12 @@ export default function LiveMap({
     );
   }
 
+  // ✅ TS workaround for Vercel: react-leaflet types mismatch (center not in MapContainerProps)
+  const Map = MapContainer as unknown as React.ComponentType<any>;
+
   return (
-    <MapContainer
-      center={mapCenter}
+    <Map
+      center={[20, 0]}
       zoom={2}
       className="w-full h-[360px] rounded-xl border border-white/10"
       whenReady={() => setMapReady(true)}
@@ -163,18 +153,14 @@ export default function LiveMap({
 
       <AutoFocus flight={selected} enabled={mapReady && !!selected} />
 
+      {/* Covered path (actual tracked points we stored) */}
       {trackPositions.length >= 2 && (
-        <Polyline
-          positions={trackPositions}
-          pathOptions={{ weight: 4, opacity: 0.9 }}
-        />
+        <Polyline positions={trackPositions} pathOptions={{ weight: 4, opacity: 0.9 }} />
       )}
 
+      {/* Route line (Origin → Current → Destination) */}
       {routePositions.length >= 2 && (
-        <Polyline
-          positions={routePositions}
-          pathOptions={{ weight: 3, opacity: 0.65, dashArray: "6 8" }}
-        />
+        <Polyline positions={routePositions} pathOptions={{ weight: 3, opacity: 0.65, dashArray: "6 8" }} />
       )}
 
       {flights.map((f) => {
@@ -189,9 +175,7 @@ export default function LiveMap({
           >
             <Popup>
               <div style={{ minWidth: 220 }}>
-                <div style={{ fontWeight: 800, fontSize: 14 }}>
-                  {f.callsign || f.id}
-                </div>
+                <div style={{ fontWeight: 800, fontSize: 14 }}>{f.callsign || f.id}</div>
 
                 {(f.from || f.to) && (
                   <div style={{ marginTop: 6, fontWeight: 700 }}>
@@ -230,6 +214,6 @@ export default function LiveMap({
           </Marker>
         );
       })}
-    </MapContainer>
+    </Map>
   );
 }
