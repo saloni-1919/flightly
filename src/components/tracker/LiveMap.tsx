@@ -1,5 +1,6 @@
 "use client";
 
+import type { LatLngExpression } from "leaflet";
 import { useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
@@ -39,7 +40,7 @@ type Flight = {
 
 function planeDivIcon(heading: number, selected: boolean) {
   const size = selected ? 34 : 26;
-  const color = selected ? "#00E5FF" : "#37D67A"; // visible colors (cyan/green)
+  const color = selected ? "#00E5FF" : "#37D67A";
 
   return L.divIcon({
     className: "",
@@ -73,6 +74,7 @@ function AutoFocus({
   useEffect(() => {
     if (!enabled) return;
     if (!flight) return;
+
     map.setView([flight.lat, flight.lon], 6, { animate: true });
   }, [enabled, flight, map]);
 
@@ -97,7 +99,6 @@ export default function LiveMap({
   const [mounted, setMounted] = useState(false);
   const [mapReady, setMapReady] = useState(false);
 
-  // you said: leave this warning; it works fine
   useEffect(() => setMounted(true), []);
 
   const selected = useMemo(() => {
@@ -138,9 +139,10 @@ export default function LiveMap({
       pts.push([selected.destLat, selected.destLon]);
     }
 
-    // must be at least 2 points to draw
     return pts.length >= 2 ? pts : [];
   }, [selected]);
+
+  const mapCenter: LatLngExpression = [20, 0];
 
   if (!mounted) {
     return (
@@ -152,7 +154,7 @@ export default function LiveMap({
 
   return (
     <MapContainer
-      center={[20, 0]}
+      center={mapCenter}
       zoom={2}
       className="w-full h-[360px] rounded-xl border border-white/10"
       whenReady={() => setMapReady(true)}
@@ -161,7 +163,6 @@ export default function LiveMap({
 
       <AutoFocus flight={selected} enabled={mapReady && !!selected} />
 
-      {/* ✅ Covered path (actual tracked points we stored) */}
       {trackPositions.length >= 2 && (
         <Polyline
           positions={trackPositions}
@@ -169,7 +170,6 @@ export default function LiveMap({
         />
       )}
 
-      {/* ✅ Route line (Origin → Current → Destination) */}
       {routePositions.length >= 2 && (
         <Polyline
           positions={routePositions}
